@@ -237,13 +237,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af44b01e9cd07c94abfb4995e688edda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  muzzleAudioSource: {fileID: 0}
-  chassisAudioSource: {fileID: 0}
+  muzzleAudioSource: {fileID: 108737174}
+  chassisAudioSource: {fileID: 1266799331165125522}
   isGrounded: 0
   isP1Tank: 0
   firePowerBase: 150
   firePowerModifier: 1
-  tankSpeed: 500
+  tankSpeed: 50000
   minMaxElevation: {x: 0, y: 0}
   muzzleFlashIntensityCurve:
     serializedVersion: 2
@@ -279,17 +279,15 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   fireAudioClips:
-  - {fileID: 8300000, guid: 513e7289e29926e47b32d6824f32db02, type: 3}
-  - {fileID: 8300000, guid: 5efe49be21e44c549a03a69d99f09ae6, type: 3}
-  - {fileID: 8300000, guid: d88de17bfe0b2924b9251e0eeb72e1b2, type: 3}
+  - {fileID: 8300000, guid: 16ab90996df935c45ac06f032560b069, type: 3}
+  - {fileID: 8300000, guid: 62c04a2238aa5ca4fab1924f1328312d, type: 3}
+  - {fileID: 8300000, guid: 807a1511035df754cb0425f522d60e3c, type: 3}
   driveAudioClips:
-  - {fileID: 8300000, guid: f90bd9ab3eba32f408747d224256ddc6, type: 3}
-  - {fileID: 8300000, guid: b36e728d721bf574cbea8cf7452fe831, type: 3}
-  - {fileID: 8300000, guid: eca86dcb1a5c99c4abc2b5408d089b5e, type: 3}
-  - {fileID: 8300000, guid: 1b2c2bcb1a0d8e54e97a40238d651c36, type: 3}
-  turretRotateAudioClip: {fileID: 8300000, guid: 9a5c44225146d1142b5c947ebc28f3a8,
+  - {fileID: 8300000, guid: 6bcb3aa8298d2d7479758aaedef0d390, type: 3}
+  - {fileID: 8300000, guid: d4f119fc728dea04ba41da270143434e, type: 3}
+  turretRotateAudioClip: {fileID: 8300000, guid: ff37aca8e244b6844a9d7642607c8d63,
     type: 3}
-  turretReloadAudioClip: {fileID: 8300000, guid: 4594a8f338081e942be3d788ef78d9c9,
+  turretReloadAudioClip: {fileID: 8300000, guid: a5553d55a9996684682a7c969fc5d913,
     type: 3}
   weaponGroup: {fileID: 0}
   controlGroup: {fileID: 0}
@@ -387,7 +385,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 100
   m_LinearDrag: 0
   m_AngularDrag: 0.05
   m_GravityScale: 1
@@ -408,9 +406,9 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0

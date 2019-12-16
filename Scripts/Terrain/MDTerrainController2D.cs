@@ -102,7 +102,7 @@ public class MDTerrainController2D : MonoBehaviour
         terrainObject.tag = "Ground";
 
         meshObject = terrainObject;
-        meshObject.AddComponent(typeof(PolygonCollider2D));
+        //meshObject.AddComponent(typeof(PolygonCollider2D));
         mesh.name = meshObject.name;
 
         return mesh;
@@ -188,7 +188,7 @@ public class MDTerrainController2D : MonoBehaviour
     }
 
     /// <summary>
-    /// Generate lighting data for the fill mesh.
+    /// Generates lighting data for the fill mesh.
     /// </summary>
     /// <param name="heightmap">Height data of the fill mesh.</param>
     /// <returns>UV coordinates for a biplanar mesh.</returns>
@@ -207,7 +207,7 @@ public class MDTerrainController2D : MonoBehaviour
     }
 
     /// <summary>
-    /// Generate lighting data for the detail mesh.
+    /// Generates lighting data for the detail mesh.
     /// </summary>
     /// <param name="heightmap">Height data of the mesh.</param>
     /// <returns>UV coordinates for a biplanar mesh.</returns>
@@ -226,9 +226,9 @@ public class MDTerrainController2D : MonoBehaviour
     }
 
     /// <summary>
-    /// Duplicate the border of a biplanar mesh into a PolygonCollider2D path.
+    /// Duplicates the border of a biplanar mesh into a PolygonCollider2D path.
     /// </summary>
-    /// <param name="mesh">Mesh to match.</param>
+    /// <param name="mesh">Mesh path to duplicate.</param>
     private void CalculateCollider(Mesh mesh)
     {
         int[] triangles = mesh.triangles;
@@ -312,11 +312,22 @@ public class MDTerrainController2D : MonoBehaviour
                 }
 
                 detailObject.AddComponent<Rigidbody2D>().isKinematic = true;
+                Rigidbody2D rb2d = detailObject.GetComponent<Rigidbody2D>();
+                rb2d.useFullKinematicContacts = true;
+                rb2d.mass = 99999;
+                rb2d.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                rb2d.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
                 break;
             }
         }
     }
 
+    /// <summary>
+    /// Calculate the triangles that form a mesh.
+    /// </summary>
+    /// <param name="count">Number of indeces to process.</param>
+    /// <returns>Int[] containing calculated triangles.</returns>
     private int[] Triangulate(int count)
     {
         List<int> indices = new List<int>();

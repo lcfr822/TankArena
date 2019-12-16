@@ -7,20 +7,16 @@ using UnityEngine.UI;
 
 public class TwoPlayerController : MonoBehaviour
 {
-    private enum DriveState { idle, rev, driving, breaking };
-    private DriveState currentState = DriveState.idle;
-    private DriveState prevState = DriveState.idle;
-    
+    private bool audioFadingIn = false;
+    private bool audioFadingOut = false;
+    private IEnumerator fadeInRoutine, fadeOutRoutine = null;
 
     [Header("Gameplay and GameObject Variables")]
     public bool isP2Human = false;
     public bool isP2Turn = false;
-    public int p1Fuel = 100;
-    public int p2Fuel = 100;
+    public float reorientationSpeed = 5.0f;
     public Rigidbody2D p1Tank, p2Tank;
     public BaseTank activeTankBase = null;
-
-    public Image test;
 
     [Header("UI Variables")]
     public Slider p1Accelerator;
@@ -28,55 +24,88 @@ public class TwoPlayerController : MonoBehaviour
     public Slider p1HealthBar, p2HealthBar;
     public Image p1FuelLevel, p2FuelLevel;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         activeTankBase = p1Tank.GetComponent<BaseTank>();
+        activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[0];
+        activeTankBase.chassisAudioSource.Play();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (FindObjectOfType<SessionController>().sessionRunning) { HandleMovement(); }
-    }
 
-    private void LateUpdate() { prevState = currentState; }
+        // Reorient tanks to upward position if not grounded.
+        if (!p1Tank.GetComponent<BaseTank>().isGrounded)
+        {
+            p1Tank.gameObject.transform.rotation = Quaternion.RotateTowards(p1Tank.gameObject.transform.rotation, Quaternion.identity, reorientationSpeed * Time.deltaTime);
+        }
+        if (!p2Tank.GetComponent<BaseTank>().isGrounded)
+        {
+            p2Tank.gameObject.transform.rotation = Quaternion.RotateTowards(p2Tank.gameObject.transform.rotation, Quaternion.identity, reorientationSpeed * Time.deltaTime);
+        }
+    }
 
     /// <summary>
     /// Apply input based on which phase the game is in and whether P2 is a bot person or bot.
+    /// Fade Audio if breaking or accelerating, loop idle if no input, loop drive at full volume if at full speed.
     /// </summary>
     private void HandleMovement()
     {
-        if (!isP2Turn && p1Tank.GetComponent<BaseTank>().isGrounded)
+        float timeRemainderFraction = 1.0f;
+        if (activeTankBase.chassisAudioSource.volume < 1.0f)
+        {
+            timeRemainderFraction = 1.0f - activeTankBase.chassisAudioSource.volume;
+        }
+
+        if (!isP2Turn && p1Tank.GetComponent<BaseTank>().isGrounded && p1FuelLevel.fillAmount > 0)
         {
             p1Accelerator.value = Input.GetAxis("P1Horizontal");
             if (p1Accelerator.value != 0)
             {
                 p1Tank.AddForce(Vector2.right * p1Accelerator.value * p1Tank.GetComponent<BaseTank>().tankSpeed * Time.deltaTime);
-                if (prevState != DriveState.driving && prevState != DriveState.rev)
+                if (fadeOutRoutine != null) { StopCoroutine(fadeOutRoutine); audioFadingOut = false; ; }
+                if (!audioFadingIn && activeTankBase.chassisAudioSource.volume < 1.0f)
                 {
-                    currentState = DriveState.rev;
+                    p1FuelLevel.fillAmount -= Time.deltaTime / 4.0f;
+                    fadeInRoutine = FadeInAudio(activeTankBase.chassisAudioSource, activeTankBase.driveAudioClips[1], activeTankBase.chassisAudioSource.volume, 1.0f, timeRemainderFraction);
+                    StartCoroutine(fadeInRoutine);
                 }
             }
             else
             {
                 p1Accelerator.value = 0;
+                if (fadeInRoutine != null) { StopCoroutine(fadeInRoutine); audioFadingIn = false; }
+                if (!audioFadingOut && activeTankBase.chassisAudioSource.volume > 0.1f)
+                {
+                    fadeOutRoutine = FadeOutAudio(activeTankBase.chassisAudioSource, activeTankBase.driveAudioClips[0], activeTankBase.chassisAudioSource.volume, 0.1f, timeRemainderFraction);
+                    StartCoroutine(fadeOutRoutine);
+                }
             }
         }
-        else if (isP2Turn && isP2Human && p2Tank.GetComponent<BaseTank>().isGrounded)
+        else if (isP2Turn && isP2Human && p2Tank.GetComponent<BaseTank>().isGrounded && p2FuelLevel.fillAmount > 0)
         {
             p2Accelerator.value = -Input.GetAxis("P2Horizontal");
             if (p2Accelerator.value != 0)
             {
                 p2Tank.AddForce(Vector2.right * -p2Accelerator.value * p2Tank.GetComponent<BaseTank>().tankSpeed * Time.deltaTime);
-                if (prevState != DriveState.driving && prevState != DriveState.rev)
+                if (fadeOutRoutine != null) { StopCoroutine(fadeOutRoutine); audioFadingOut = false; }
+                if (!audioFadingIn && activeTankBase.chassisAudioSource.volume < 1.0f)
                 {
-                    currentState = DriveState.rev;
+                    p2FuelLevel.fillAmount -= Time.deltaTime / 4.0f;
+                    fadeInRoutine = FadeInAudio(activeTankBase.chassisAudioSource, activeTankBase.driveAudioClips[1], activeTankBase.chassisAudioSource.volume, 1.0f, timeRemainderFraction);
+                    StartCoroutine(fadeInRoutine);
                 }
             }
             else
             {
                 p2Accelerator.value = 0;
+                if (fadeInRoutine != null) { StopCoroutine(fadeInRoutine); audioFadingIn = false; }
+                if (!audioFadingOut && activeTankBase.chassisAudioSource.volume > 0.1f)
+                {
+                    fadeOutRoutine = FadeOutAudio(activeTankBase.chassisAudioSource, activeTankBase.driveAudioClips[0], activeTankBase.chassisAudioSource.volume, 0.1f, timeRemainderFraction);
+                    StartCoroutine(fadeOutRoutine);
+                }
             }
         }
 
@@ -84,62 +113,73 @@ public class TwoPlayerController : MonoBehaviour
         {
             BotTurn();
         }
-
-        if (p1Accelerator.value == 0 && currentState != DriveState.breaking && currentState != DriveState.idle)
-        {
-            currentState = DriveState.breaking;
-        }
-
-        if (p2Accelerator.value == 0 && currentState != DriveState.breaking && currentState != DriveState.idle)
-        {
-            currentState = DriveState.breaking;
-        }
-
-        if (!activeTankBase.chassisAudioSource.loop && currentState == DriveState.idle) { activeTankBase.chassisAudioSource.loop = true; }
-
-        Debug.Log("Drive State: " + currentState);
-        HandleMovementAudio();
     }
 
-    private void HandleMovementAudio()
+    /// <summary>
+    /// Assign an AudioClip to an AudioSource and fade it in to full volume over fadeTime seconds.
+    /// </summary>
+    /// <param name="audioSource">Target AudioSource.</param>
+    /// <param name="driveClip">AudioClip to fade in.</param>
+    /// <param name="startVolume">Initial point of the fade in (0-1).</param>
+    /// <param name="targetVolume">Target volume of the fade in (1-0).</param>
+    /// <param name="fadeTime">How long the fade in should last.</param>
+    /// <returns>Null.</returns>
+    private IEnumerator FadeInAudio(AudioSource audioSource, AudioClip driveClip, float startVolume, float targetVolume, float fadeTime)
     {
-        // If the tank is accelerating and the current chassis clip is idle.
-        if (currentState == DriveState.rev && activeTankBase.chassisAudioSource.clip == activeTankBase.driveAudioClips[2])
+        audioFadingIn = true;
+        audioSource.volume = startVolume;
+        audioSource.clip = driveClip;
+        audioSource.Play();
+
+        while (audioSource.volume <= targetVolume)
         {
-            Debug.Log("Reving from idle.");
-            activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[1];
+            audioSource.volume += Time.deltaTime / fadeTime;
+            if (audioSource.volume >= targetVolume) { break; }
+            yield return null;
         }
-        // If the tank is accelerating and the current chassis clip is break.
-        else if (currentState == DriveState.rev && activeTankBase.chassisAudioSource == activeTankBase.driveAudioClips[3])
+
+        fadeInRoutine = null;
+        audioFadingIn = false;
+    }
+
+    /// <summary>
+    /// Assign an AudioClip to an AudioSource and fade it out to a specified volume over fadeTime seconds.
+    /// </summary>
+    /// <param name="audioSource">Target AudioSource.</param>
+    /// <param name="idleClip">AudioClip to fade in.</param>
+    /// <param name="startVolume">Initial point for the fade out (1-0).</param>
+    /// <param name="targetVolume">Target volume of the fade out (0-1).</param>
+    /// <param name="fadeTime">How long the fade out should last.</param>
+    /// <returns>Null.</returns>
+    private IEnumerator FadeOutAudio(AudioSource audioSource, AudioClip idleClip, float startVolume, float targetVolume, float fadeTime)
+    {
+        audioFadingOut = true;
+        while (audioSource.volume >= targetVolume)
         {
-            Debug.Log("Reving from breaking.");
-            float startTime = activeTankBase.chassisAudioSource.time;
-            activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[1];
-            activeTankBase.chassisAudioSource.time = startTime;
+            audioSource.volume -= startVolume * Time.deltaTime / fadeTime;
+            if (audioSource.volume <= targetVolume) { break; }
+            yield return null;
         }
-        // If the tank is breaking and the cucrrent chassis clip is accelerate.
-        else if (currentState == DriveState.breaking && activeTankBase.chassisAudioSource.clip == activeTankBase.driveAudioClips[1])
-        {
-            Debug.Log("Breaking from reving.");
-            float startTime = activeTankBase.chassisAudioSource.time;
-            activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[3];
-            activeTankBase.chassisAudioSource.time = startTime;
-        }
-        // If the tank is breaking and the current chassis clip is drive.
-        else if (currentState == DriveState.breaking && activeTankBase.chassisAudioSource.clip == activeTankBase.driveAudioClips[2])
-        {
-            Debug.Log("Breaking from drive.");
-            activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[3];
-        }
-        // Any other condition.
-        else
-        {
-            Debug.Log("Idling.");
-            currentState = DriveState.idle;
-            activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[0]; 
-        }
-        Debug.Log("Playing: " + activeTankBase.chassisAudioSource.clip.name);
-        if (!activeTankBase.chassisAudioSource.isPlaying) { activeTankBase.chassisAudioSource.Play(); }
+
+        audioSource.clip = idleClip;
+        audioSource.Play();
+        fadeOutRoutine = null;
+        audioFadingOut = false;
+    }
+
+    /// <summary>
+    /// Stop continuous functions of previous activeBaseTank and intitialize new activeBaseTank.
+    /// </summary>
+    /// <param name="baseTank">Current BaseTank class.</param>
+    public void UpdateBaseTankValues(BaseTank baseTank)
+    {
+        activeTankBase.chassisAudioSource.Stop();
+        activeTankBase.muzzleAudioSource.Stop();
+        activeTankBase = baseTank;
+        activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[0];
+        activeTankBase.chassisAudioSource.Play();
+        if (!isP2Turn) { p1FuelLevel.fillAmount = 1.0f; }
+        else { p2FuelLevel.fillAmount = 1.0f; }
     }
 
     /// <summary>
