@@ -1,6 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -13,14 +13,15 @@ public class AnalogStick : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private bool isDragging = false;
     private float analogAreaRadius = 0.0f;
     private Image analogArea, analogKnob;
+    private Vector2 analogInputValues = Vector2.zero;
 
-    public Vector2 analogInputValues = Vector2.zero;
+    public OnValueChanged onValueChanged;
 
     void Start()
     {
-        analogKnob = transform.GetComponent<Image>();
-        analogArea = transform.parent.GetComponent<Image>();
-        analogAreaRadius = (analogArea.rectTransform.rect.width / 2.0f * FindObjectOfType<Canvas>().scaleFactor) - 
+        analogKnob = transform.GetChild(0).GetComponent<Image>();
+        analogArea = GetComponent<Image>();
+        analogAreaRadius = (analogArea.rectTransform.rect.width / 2.0f * FindObjectOfType<Canvas>().scaleFactor) -
                            (analogKnob.rectTransform.rect.width / 2.0f * FindObjectOfType<Canvas>().scaleFactor);
     }
 
@@ -28,14 +29,14 @@ public class AnalogStick : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
         if (isDragging)
         {
-            transform.position = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+            analogKnob.transform.position = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
             ClampAimKnob();
         }
     }
 
     /// <summary>
-    /// Check if the knob is within the radius of the measurement area. If not, correct the position.
-    /// Then, clamp the analog values between -1 and 1 and assign them to a publicly accessible variable.
+    /// Checks if the knob is within the radius of the measurement area. If not, corrects the position.
+    /// Then clamps the analog values between -1 and 1 and assigns them to a publicly accessible variable.
     /// </summary>
     private void ClampAimKnob()
     {
@@ -48,16 +49,32 @@ public class AnalogStick : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         }
         analogInputValues.x = Mathf.Clamp((analogKnob.transform.position - analogArea.transform.position).x / analogAreaRadius, -1.0f, 1.0f);
         analogInputValues.y = Mathf.Clamp((analogKnob.transform.position - analogArea.transform.position).y / analogAreaRadius, -1.0f, 1.0f);
+
+        onValueChanged.Invoke(analogInputValues);
     }
 
+    /// <summary>
+    /// Initiates dragging when a click is detected inside the measurement area.
+    /// </summary>
+    /// <param name="eventData">Pointer Event data.</param>
     public void OnPointerDown(PointerEventData eventData)
     {
         isDragging = true;
     }
 
+    /// <summary>
+    /// Termiantes dragging when the selecting pointer is released.
+    /// </summary>
+    /// <param name="eventData">Pointer Event data.</param>
     public void OnPointerUp(PointerEventData eventData)
     {
         isDragging = false;
         analogKnob.transform.localPosition = Vector3.zero;
     }
 }
+
+/// <summary>
+/// Proxy class for calling event listeners.
+/// </summary>
+[Serializable]
+public class OnValueChanged : UnityEvent<Vector2> { };

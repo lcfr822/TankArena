@@ -29,6 +29,8 @@ public class TwoPlayerController : MonoBehaviour
         activeTankBase = p1Tank.GetComponent<BaseTank>();
         activeTankBase.chassisAudioSource.clip = activeTankBase.driveAudioClips[0];
         activeTankBase.chassisAudioSource.Play();
+
+        FindObjectOfType<AnalogStick>().onValueChanged.AddListener(ReceiveTargetingData);
     }
 
     private void Update()
@@ -188,5 +190,14 @@ public class TwoPlayerController : MonoBehaviour
     private void BotTurn()
     {
         throw new NotImplementedException("Bot turns have not been implemented!");
+    }
+
+    /// <summary>
+    /// Listens for analog stick input.
+    /// </summary>
+    /// <param name="value"></param>
+    public void ReceiveTargetingData(Vector2 value)
+    {
+        Debug.Log("Receiving Targeting value of: " + value.ToString());
     }
 }
